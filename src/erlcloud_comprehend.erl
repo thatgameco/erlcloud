@@ -22,6 +22,7 @@ request(Config0, OperationName, Request) ->
     case erlcloud_aws:update_config(Config0) of
         {ok, Config} ->
             Body       = jsx:encode(Request),
+            % metadata.targetPrefix of https://github.com/boto/botocore/blob/develop/botocore/data/comprehend/2017-11-27/service-2.json
             Operation  = "Comprehend_20171127." ++ OperationName,
             Headers    = get_headers(Config, Operation, Body),
             AwsRequest = #aws_request{service         = config,
@@ -56,8 +57,10 @@ handle_result(#aws_request{response_type = error,
 get_headers(#aws_config{comprehend_host = Host} = Config, Operation, Body) ->
     Headers = [{"host",         Host},
         {"x-amz-target", Operation},
+        % metadata.jsonVersion of https://github.com/boto/botocore/blob/develop/botocore/data/comprehend/2017-11-27/service-2.json
         {"content-type", "application/x-amz-json-1.1"}],
     Region = erlcloud_aws:aws_region_from_host(Host),
+    % metadata.signingName of https://github.com/boto/botocore/blob/develop/botocore/data/comprehend/2017-11-27/service-2.json
     erlcloud_aws:sign_v4_headers(Config, Headers, Body, Region, "comprehend").
 
 get_url(#aws_config{comprehend_scheme = Scheme,

@@ -117,6 +117,7 @@
           config_host="config.us-east-1.amazonaws.com"::string(),
           config_port=443::non_neg_integer(),
           comprehend_scheme="https://"::string(),
+          % metadata.endpointPrefix of https://github.com/boto/botocore/blob/develop/botocore/data/comprehend/2017-11-27/service-2.json
           comprehend_host="comprehend.us-east-1.amazonaws.com"::string(),
           comprehend_port=443::non_neg_integer(),
           access_key_id::string()|undefined|false,
