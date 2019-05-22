@@ -756,6 +756,9 @@ service_config( <<"states">> = Service, Region, Config ) ->
 service_config( <<"config">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ config_host = Host };
+service_config( <<"comprehend">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ comprehend_host = Host };
 service_config(<<"cloudwatch_logs">>, Region, Config)->
     Host = service_host(<<"logs">>, Region),
     Config#aws_config{cloudwatch_logs_host = Host};
