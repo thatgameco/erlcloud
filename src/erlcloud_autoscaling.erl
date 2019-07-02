@@ -12,6 +12,7 @@
          describe_autoscaling_groups_all/0, describe_autoscaling_groups_all/1, describe_autoscaling_groups_all/2,
          describe_launch_configurations_all/0, describe_launch_configurations_all/1, describe_launch_configurations_all/2
         ]).
+-export([set_instance_protection/4]).
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
@@ -119,6 +120,19 @@ describe_launch_configurations_all(ConfiguratoinNames, Config)
         {ok, Docs} ->
             Configurations = lists:append([xmerl_xpath:string("/DescribeLaunchConfigurationsResponse/DescribeLaunchConfigurationsResult/LaunchConfigurations/member", Doc) || Doc <- Docs]),
             {ok, [extract_launch_configuration(Configuration) || Configuration <- Configurations]};
+        {error, Reason} ->
+            {error, Reason}  
+    end.
+
+-spec set_instance_protection(InstanceIds::[string()], AutoScalingGroupName::string(), ProtectedFromScaleIn::boolean(), Config::aws_config()) -> ok | {error, term()}.
+set_instance_protection(InstanceIds, AutoScalingGroupName, ProtectedFromScaleIn, Config) ->
+    case autoscaling_query(Config, "SetInstanceProtection", lists:flatten([
+        erlcloud_aws:param_list(InstanceIds, "InstanceIds.member"),
+        {"AutoScalingGroupName", AutoScalingGroupName},
+        {"ProtectedFromScaleIn", ProtectedFromScaleIn}
+    ])) of
+        {ok, _Doc} ->
+            ok;
         {error, Reason} ->
             {error, Reason}  
     end.
