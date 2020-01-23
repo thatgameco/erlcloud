@@ -11,6 +11,7 @@
 -type secret_access_key() :: string().
 
 -type db_instance() :: proplists:proplist().
+-type db_cluster() :: proplists:proplist().
 -type db_security_group() :: proplists:proplist().
 -type db_subnet_group() :: proplists:proplist().
 -type marker() :: string() | none | undefined.
@@ -46,6 +47,9 @@
     describe_db_subnet_groups_all/1
 ]).
 
+-export([
+    describe_db_clusters/2
+]).
 
 %%==============================================================================
 %% Library initialization
@@ -126,7 +130,6 @@ describe_db_instances_all() ->
     {ok, [db_instance()]} | error_res().
 describe_db_instances_all(Config) ->
     describe_all(fun describe_db_instances/2, Config, undefined, []).
-
 
 -spec describe_db_security_groups() ->
     {ok, [db_security_group()], marker()} | error_res().
@@ -244,6 +247,36 @@ describe_db_subnet_groups_all() ->
     {ok, [db_subnet_group()]} | error_res().
 describe_db_subnet_groups_all(Config) ->
     describe_all(fun describe_db_subnet_groups/2, Config, undefined, []).
+
+
+-spec describe_db_clusters(describe_params(), aws_config()) ->
+    {ok, [db_cluster()], marker()} | error_res().
+describe_db_clusters(Params, Config) ->
+    Query = lists:map(
+        fun
+            ({db_cluster_identifier, Id}) -> {"DBClusterIdentifier", Id};
+            ({marker, Marker}) -> {"Marker", Marker}
+        end,
+        Params
+    ),
+    case rds_query(Config, "DescribeDBClusters", Query) of
+        {ok, Doc} ->
+            DBInstances = extract_db_clusters(
+                xmerl_xpath:string(
+                    "/DescribeDBClustersResponse/DescribeDBClustersResult"
+                    "/DBClusters/DBCluster",
+                    Doc
+                )
+            ),
+            NewMarker = erlcloud_xml:get_text(
+                "/DescribeDBClustersResponse/DescribeDBClustersResult/Marker",
+                Doc,
+                undefined
+            ),
+            {ok, DBInstances, NewMarker};
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 
 %%==============================================================================
@@ -608,3 +641,44 @@ extract_ip_range(XmlNode) ->
          optional_text}
     ], XmlNode).
 
+extract_db_clusters(XmlNodes) ->
+    lists:map(fun extract_db_cluster/1, XmlNodes).
+
+extract_db_cluster(XmlNode) ->
+    erlcloud_xml:decode([
+        {db_cluster_identifier,
+         "DBClusterIdentifier",
+         optional_text},
+        {endpoint,
+         "Endpoint",
+         optional_text},
+        {reader_endpoint,
+         "ReaderEndpoint",
+         optional_text},
+        {custom_endpoints,
+         "CustomEndpoints/member",
+         list},
+         % {optional_map, fun extract_custom_endpoint/1}},
+        {db_cluster_members,
+         "DBClusterMembers/DBClusterMember",
+         {optional_map, fun extract_db_cluster_member/1}},
+        {db_cluster_resource_id,
+         "DbClusterResourceId",
+         optional_text},
+        {db_cluster_arn,
+         "DBClusterArn",
+         optional_text}
+    ], XmlNode).
+
+extract_db_cluster_member(XmlNode) ->
+    erlcloud_xml:decode([
+        {db_instance_identifier,
+         "DBInstanceIdentifier",
+         optional_text},
+        {is_cluster_writer,
+         "IsClusterWriter",
+         optional_boolean}
+    ], XmlNode).
+
+% extract_custom_endpoint(XmlNode) ->
+%     erlcloud_xml:get_list
